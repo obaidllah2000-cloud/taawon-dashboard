@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ta'awon Al Khobar – Project Controls Dashboard</title>
+<meta name="description" content="Project controls dashboard for Ta'awon Al Khobar infrastructure & utilities: engineering, procurement, construction, risks and close-out.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:wght@400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+:root{
+--font-anthropic-sans:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif;
+--font-anthropic-serif:"Source Serif 4",Georgia,serif;
+--color-fg:#16202e;--color-fg-muted:#5b6475;--color-bg:#f4f6f9;--color-panel:#ffffff;--color-border-line:#dde3ea;
+--color-ok:#2e8b57;--color-warn:#c98a1b;--color-bad:#c0453a;
+--cds-font-size-caption:12px;--cds-font-size-body:14px;--cds-font-size-heading:16px;--cds-font-size-title:30px;--cds-font-weight-medium:500;
+--cds-gap-xs:4px;--cds-gap-sm:8px;--cds-gap-md:14px;--cds-gap-lg:20px;--cds-gap-xl:28px;
+--cds-pad-xs:4px;--cds-pad-sm:8px;--cds-pad-md:12px;--cds-pad-lg:18px;--cds-pad-xl:26px;--cds-radius:8px;
+--cds-chart-muted:#c5ceda;--cds-chart-grid:#e9edf2;--cds-chart-axis:#9aa5b1;--cds-chart-reference:#7d8ea3;
+--cds-surface-popover:#fff;--cds-border:#d7dde5;--cds-shadow-popover:0 4px 14px rgba(15,42,68,.14);--cds-text-secondary:#5b6475;--cds-dur-slow:300ms}
+html,body{margin:0;background:var(--color-bg)}
+#dash-root{min-height:100vh}
+.dash-skeleton{color:transparent!important;background:var(--cds-chart-grid);border-radius:4px}
+</style>
+<style>
+#dash-root{--dash-gutter:0}
+.tw{container-type:inline-size;font-family:var(--font-anthropic-sans);color:var(--color-fg);font-size:var(--cds-font-size-body)}
+.tw:not(.ar) .ar-t{display:none!important}
+.tw.ar .en-t{display:none!important}
+.tw.ar{direction:rtl}
+.tw svg{direction:ltr;display:block}
+.tw-app{display:grid;grid-template-columns:15rem minmax(0,1fr);min-height:100%}
+/* sidebar */
+.tw-sb{background:#0f2a44;color:#e8eef5;display:flex;flex-direction:column;padding:var(--cds-pad-lg) 0;gap:var(--cds-gap-md)}
+.tw-sb-brand{display:flex;align-items:center;gap:var(--cds-gap-sm);padding:0 var(--cds-pad-lg)}
+.tw-logo{width:2.2rem;height:2.2rem;border:1px solid rgba(255,255,255,.5);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:var(--cds-font-size-caption);flex:none}
+.tw-sb-t{font-size:var(--cds-font-size-caption);letter-spacing:.08em;font-weight:600}
+.tw-sb-s{font-size:11px;color:#8ea3ba;letter-spacing:.06em}
+.tw-sb-proj{border-top:1px solid rgba(255,255,255,.12);border-bottom:1px solid rgba(255,255,255,.12);padding:var(--cds-pad-md) var(--cds-pad-lg)}
+.tw-sb-k{font-size:11px;color:#8ea3ba;margin-bottom:4px}
+.tw-sb-name{font-family:var(--font-anthropic-serif);font-size:var(--cds-font-size-heading);margin-bottom:2px}
+.tw-sb-cl{font-size:var(--cds-font-size-caption);color:#c4d2e1}
+.tw-sb-live{font-size:11px;color:#c4d2e1;margin-top:var(--cds-gap-xs);display:flex;align-items:center;gap:6px}
+.tw-sb-live::before{content:"";width:.5rem;height:.5rem;border-radius:50%;background:#3fbf7f}
+.tw-nav{display:flex;flex-direction:column;gap:2px;padding:0 var(--cds-pad-sm)}
+.tw-nav button{font:inherit;color:#c4d2e1;background:none;border:0;border-inline-start:3px solid transparent;border-radius:4px;display:flex;align-items:center;gap:var(--cds-gap-sm);padding:var(--cds-pad-sm) var(--cds-pad-md);cursor:pointer;text-align:start}
+.tw-nav button .num{font-size:11px;color:#8ea3ba;font-variant-numeric:tabular-nums}
+.tw-nav button[aria-current="page"]{background:rgba(255,255,255,.09);color:#fff;border-inline-start-color:#5fb3e8;font-weight:600}
+.tw-nav button:hover{background:rgba(255,255,255,.05)}
+.tw-sb-foot{margin-top:auto;padding:0 var(--cds-pad-lg);font-size:var(--cds-font-size-caption);color:#c4d2e1}
+.tw-sb-foot b{display:block;color:#fff;font-weight:600;margin-top:2px}
+.tw-sb-tag{margin-top:var(--cds-gap-md);font-size:10px;letter-spacing:.12em;color:#8ea3ba}
+/* main */
+.tw-main{min-width:0;background:var(--color-bg)}
+.tw-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--cds-gap-sm);padding:var(--cds-pad-md) var(--cds-pad-lg);border-bottom:1px solid var(--color-border-line)}
+.tw-crumb{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.tw-crumb b{color:var(--color-fg);letter-spacing:.06em}
+.tw-topr{display:flex;align-items:center;gap:var(--cds-gap-sm);flex-wrap:wrap;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.tw-asof::before{content:"";display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:var(--color-ok);margin-inline-end:6px}
+.tw-hint{border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:2px 8px}
+.tw-lang{display:flex;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);overflow:hidden}
+.tw-lang button{font:inherit;font-size:var(--cds-font-size-caption);background:none;border:0;padding:3px 10px;cursor:pointer;color:var(--color-fg-muted)}
+.tw-lang button[aria-pressed="true"]{background:var(--color-fg);color:var(--color-bg)}
+.tw-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--cds-gap-md);padding:var(--cds-pad-sm) var(--cds-pad-lg) var(--cds-pad-md);border-bottom:1px solid var(--color-border-line)}
+.tw-filters label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--color-fg-muted)}
+.tw-filters select{font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:4px 8px;min-width:9rem}
+.tw-reset{font:inherit;font-size:var(--cds-font-size-caption);background:none;border:0;color:var(--color-fg-muted);text-decoration:underline;cursor:pointer;padding:4px}
+.tw-page{padding:var(--cds-pad-lg)}
+.tw-kick{font-size:11px;color:var(--color-fg-muted);letter-spacing:.04em;margin:0 0 4px}
+.tw h1{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);margin:0 0 var(--cds-gap-xs)}
+.tw-lead{color:var(--color-fg-muted);margin:0 0 var(--cds-gap-md);max-width:52rem}
+.tw-info{display:flex;flex-wrap:wrap;gap:var(--cds-gap-xs) var(--cds-gap-lg);font-size:var(--cds-font-size-caption);margin:0 0 var(--cds-gap-md)}
+.tw-info span.k{color:var(--color-fg-muted);margin-inline-end:6px}
+.tw-take{margin:0 0 var(--cds-gap-md);line-height:1.55;max-width:60rem}
+.tw .tw-take b{font-weight:600}
+.tw-banner{border:1px solid color-mix(in srgb,var(--color-warn) 45%,transparent);background:color-mix(in srgb,var(--color-warn) 9%,transparent);border-radius:var(--cds-radius);padding:var(--cds-pad-md) var(--cds-pad-lg);margin-bottom:var(--cds-gap-md);font-size:var(--cds-font-size-caption)}
+.tw-banner h2{font-size:var(--cds-font-size-body);font-weight:600;margin:0 0 var(--cds-gap-xs)}
+.tw-banner ul{margin:0;padding-inline-start:1.1rem;line-height:1.7}
+.tw-banner li.info{color:var(--color-fg-muted)}
+.tw-more{font:inherit;font-size:var(--cds-font-size-caption);background:none;border:0;color:var(--color-fg-muted);text-decoration:underline;cursor:pointer;padding:0;margin-top:4px}
+.tw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--cds-gap-md);margin-bottom:var(--cds-gap-md)}
+.tw-grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:var(--cds-gap-md);margin-bottom:var(--cds-gap-md)}
+.tw-stack{display:flex;flex-direction:column;gap:var(--cds-gap-md);min-width:0}
+.tw-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10.5rem),1fr));gap:var(--cds-gap-md);margin-bottom:var(--cds-gap-md)}
+.tw-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);min-width:0}
+.tw-card h2{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0 0 var(--cds-gap-xs)}
+.tw-note{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);margin:0 0 var(--cds-gap-md)}
+.tw-tile{border-top:3px solid var(--acc)}
+.tw-tl{color:var(--color-fg-muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.tw-big{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);font-variant-numeric:tabular-nums;margin:var(--cds-gap-xs) 0}
+.tw-sub{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums}
+.tw-chip{display:inline-block;margin-top:6px;font-size:11px;border-radius:4px;padding:1px 6px;background:color-mix(in srgb,var(--color-fg) 7%,transparent);color:var(--color-fg-muted)}
+.tw-chart{position:relative;min-height:8rem}
+.tw-tick{fill:var(--color-fg-muted);font-size:var(--cds-font-size-caption);font-family:var(--font-anthropic-sans)}
+.tw-lbl{fill:var(--color-fg);font-size:var(--cds-font-size-caption);font-family:var(--font-anthropic-sans);font-variant-numeric:tabular-nums}
+.tw-legend{display:flex;flex-wrap:wrap;gap:var(--cds-gap-sm) var(--cds-gap-md);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-bottom:var(--cds-gap-sm)}
+.tw-legend span::before{content:"";display:inline-block;width:.6rem;height:.6rem;border-radius:2px;margin-inline-end:.35rem;background:var(--sw)}
+.sw-ok{--sw:var(--color-ok)}.sw-warn{--sw:var(--color-warn)}.sw-bad{--sw:var(--color-bad)}.sw-ref{--sw:var(--cds-chart-reference)}.sw-mut{--sw:var(--cds-chart-muted)}
+.tw-tablebox{overflow:auto;max-height:30rem}
+.tw-table{width:100%;border-collapse:collapse;font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums}
+.tw-table th{text-align:start;font-weight:var(--cds-font-weight-medium);color:var(--color-fg-muted);border-bottom:1px solid var(--color-border-line);padding:var(--cds-pad-xs) var(--cds-pad-sm);position:sticky;top:0;background:var(--color-panel);white-space:nowrap}
+.tw-table td{border-bottom:1px solid var(--color-border-line);padding:var(--cds-pad-xs) var(--cds-pad-sm);vertical-align:top}
+.tw-table .num{text-align:end}
+.tw-wbs tr.l1{cursor:pointer;font-weight:600;background:color-mix(in srgb,var(--color-fg) 5%,transparent)}
+.tw-tip{position:absolute;z-index:3;background:var(--cds-surface-popover);border:1px solid var(--cds-border);border-radius:var(--cds-radius);box-shadow:var(--cds-shadow-popover);padding:var(--cds-pad-xs) var(--cds-pad-sm);font-size:var(--cds-font-size-caption);pointer-events:none;white-space:nowrap}
+.tw-tip-h{color:var(--cds-text-secondary)}
+.tw-fail{display:flex;align-items:center;justify-content:center;gap:.4rem;min-height:8rem;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption)}
+.tw-fail::before{content:"";width:.375rem;height:.375rem;border-radius:50%;background:var(--color-bad)}
+.tw-empty{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);padding:var(--cds-pad-md) 0}
+.tw-matrix table{border-collapse:separate;border-spacing:3px;width:100%;font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums}
+.tw-matrix th{font-weight:var(--cds-font-weight-medium);color:var(--color-fg-muted);text-align:start;padding:var(--cds-pad-xs);white-space:nowrap}
+.tw-matrix td{text-align:center;padding:var(--cds-pad-sm) var(--cds-pad-xs);border-radius:var(--cds-radius);white-space:nowrap}
+.tw-matrix td.out{border:1px dashed var(--color-border-line);color:var(--color-fg-muted)}
+.tw-rm{display:grid;grid-template-columns:auto repeat(3,1fr);gap:3px;font-size:var(--cds-font-size-caption)}
+.tw-rm .c{min-height:4.5rem;border-radius:var(--cds-radius);padding:var(--cds-pad-xs);display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+.tw-rm .ax{color:var(--color-fg-muted);display:flex;align-items:center;justify-content:center;padding:var(--cds-pad-xs)}
+.tw-pill{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:999px;padding:1px 8px;cursor:default}
+.tw-pos{position:relative}
+.tw-signal{margin:0;padding-inline-start:1.1rem;line-height:1.6;font-size:var(--cds-font-size-caption)}
+[data-dash-source-state=empty]{color:transparent}
+[data-dash-source-state=refreshing]{opacity:.5;transition:opacity var(--cds-dur-slow)}
+@container (max-width: 760px){
+  .tw-app{grid-template-columns:1fr}
+  .tw-sb{padding:var(--cds-pad-md) 0;gap:var(--cds-gap-sm)}
+  .tw-sb-proj,.tw-sb-foot{display:none}
+  .tw-nav{flex-direction:row;flex-wrap:wrap}
+  .tw-nav button{border-inline-start:0;border-bottom:3px solid transparent;padding:var(--cds-pad-xs) var(--cds-pad-sm)}
+  .tw-nav button[aria-current="page"]{border-bottom-color:#5fb3e8}
+  .tw-grid2{grid-template-columns:1fr}
+}
+</style>
+<script>
+(function(){
+const DATA={"e1": [{"week": "2026-10-13", "system": "Storm water", "system_ar": "شبكة مياه الأمطار", "package": "Wet", "package_ar": "رطبة", "total": 19, "approved": 19, "rejected": 0, "under_review": 0, "to_submit": 0, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 0, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "Sewerage", "system_ar": "شبكة الصرف الصحي", "package": "Wet", "package_ar": "رطبة", "total": 10, "approved": 10, "rejected": 0, "under_review": 0, "to_submit": 0, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 0, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "Potable water", "system_ar": "شبكة مياه الشرب", "package": "Wet", "package_ar": "رطبة", "total": 8, "approved": 8, "rejected": 0, "under_review": 0, "to_submit": 0, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 0, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "Fire fighting", "system_ar": "شبكة مكافحة الحريق", "package": "Wet", "package_ar": "رطبة", "total": 8, "approved": 8, "rejected": 0, "under_review": 0, "to_submit": 0, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 0, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "Structural – wet", "system_ar": "الأعمال الإنشائية – رطبة", "package": "Wet", "package_ar": "رطبة", "total": 11, "approved": 0, "rejected": 0, "under_review": 0, "to_submit": 11, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 11, "wk_to_submit": 0, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "Structural – dry", "system_ar": "الأعمال الإنشائية – جافة", "package": "Dry", "package_ar": "جافة", "total": 7, "approved": 0, "rejected": 0, "under_review": 0, "to_submit": 7, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 0, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "ELV (civil)", "system_ar": "التيار المنخفض جدًا ELV (مدني)", "package": "Dry", "package_ar": "جافة", "total": 43, "approved": 0, "rejected": 0, "under_review": 0, "to_submit": 43, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 0, "wk_to_resubmit": 0}], "e2": [{"week": "2026-10-13", "system": "Storm water", "system_ar": "شبكة مياه الأمطار", "package": "Wet", "package_ar": "رطبة", "total": 12, "approved": 5, "rejected": 0, "under_review": 0, "to_submit": 7, "to_resubmit": 0, "wk_approved": 5, "wk_rejected": 1, "wk_under_review": 2, "wk_to_submit": 5, "wk_to_resubmit": 1}, {"week": "2026-10-13", "system": "Sewer", "system_ar": "الصرف الصحي", "package": "Wet", "package_ar": "رطبة", "total": 8, "approved": 3, "rejected": 1, "under_review": 1, "to_submit": 4, "to_resubmit": 1, "wk_approved": 3, "wk_rejected": 1, "wk_under_review": 1, "wk_to_submit": 4, "wk_to_resubmit": 1}, {"week": "2026-10-13", "system": "Potable & fire fighting", "system_ar": "مياه الشرب ومكافحة الحريق", "package": "Wet", "package_ar": "رطبة", "total": 3, "approved": 1, "rejected": 0, "under_review": 0, "to_submit": 1, "to_resubmit": 0, "wk_approved": 1, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 2, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "LV (civil)", "system_ar": "الجهد المنخفض LV (مدني)", "package": "Dry", "package_ar": "جافة", "total": 4, "approved": 0, "rejected": 0, "under_review": 0, "to_submit": 4, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 4, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "MV (civil)", "system_ar": "الجهد المتوسط MV (مدني)", "package": "Dry", "package_ar": "جافة", "total": 4, "approved": 0, "rejected": 0, "under_review": 0, "to_submit": 4, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 4, "wk_to_resubmit": 0}, {"week": "2026-10-13", "system": "ELV (civil)", "system_ar": "التيار المنخفض جدًا ELV (مدني)", "package": "Dry", "package_ar": "جافة", "total": 5, "approved": 0, "rejected": 0, "under_review": 0, "to_submit": 5, "to_resubmit": 0, "wk_approved": 0, "wk_rejected": 0, "wk_under_review": 0, "wk_to_submit": 5, "wk_to_resubmit": 0}], "po": [{"week": "2026-10-13", "system": "Storm water", "system_ar": "شبكة مياه الأمطار", "package": "Wet", "package_ar": "رطبة", "total": 12, "issued": 5, "pending": 7, "wk_issued": 0, "wk_pending": 0}, {"week": "2026-10-13", "system": "Sewer", "system_ar": "الصرف الصحي", "package": "Wet", "package_ar": "رطبة", "total": 8, "issued": 3, "pending": 5, "wk_issued": 0, "wk_pending": 0}, {"week": "2026-10-13", "system": "Potable & fire fighting", "system_ar": "مياه الشرب ومكافحة الحريق", "package": "Wet", "package_ar": "رطبة", "total": 3, "issued": 1, "pending": 2, "wk_issued": 0, "wk_pending": 0}, {"week": "2026-10-13", "system": "LV (civil)", "system_ar": "الجهد المنخفض LV (مدني)", "package": "Dry", "package_ar": "جافة", "total": 4, "issued": 0, "pending": 4, "wk_issued": 0, "wk_pending": 0}, {"week": "2026-10-13", "system": "MV (civil)", "system_ar": "الجهد المتوسط MV (مدني)", "package": "Dry", "package_ar": "جافة", "total": 4, "issued": 0, "pending": 4, "wk_issued": 0, "wk_pending": 0}, {"week": "2026-10-13", "system": "ELV (civil)", "system_ar": "التيار المنخفض جدًا ELV (مدني)", "package": "Dry", "package_ar": "جافة", "total": 5, "issued": 0, "pending": 5, "wk_issued": 0, "wk_pending": 0}], "reported": [{"week": "2026-10-13", "log": "Shop drawings (E1)", "reported_pct": 0.425, "reported_done": 45, "reported_total": 106}, {"week": "2026-10-13", "log": "Material submittals (E2)", "reported_pct": 0.3, "reported_done": 12, "reported_total": 40}, {"week": "2026-10-13", "log": "Purchase orders", "reported_pct": 0.27, "reported_done": 10, "reported_total": 37}], "scope": [{"zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": true, "planned_m": 164.0, "installed_m": null}, {"zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": true, "planned_m": 169.5, "installed_m": null}, {"zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": true, "planned_m": 187.9, "installed_m": null}, {"zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": 103.09, "installed_m": null}, {"zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": true, "planned_m": 210.1, "installed_m": null}, {"zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": 19.05, "installed_m": null}, {"zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": true, "planned_m": 145.0, "installed_m": null}, {"zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": true, "planned_m": 148.0, "installed_m": null}, {"zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": true, "planned_m": 120.2, "installed_m": null}, {"zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": 615.21, "installed_m": null}, {"zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": 807.01, "installed_m": null}, {"zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "in_scope": false, "planned_m": null, "installed_m": null}, {"zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}, {"zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "in_scope": true, "planned_m": null, "installed_m": null}], "nettotals": [{"network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "length_m": 2365, "measure": "pipe length", "measure_ar": "طول الأنابيب"}, {"network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "length_m": 5814, "measure": "duct length", "measure_ar": "طول المجاري"}, {"network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "length_m": 655, "measure": "pipe length", "measure_ar": "طول الأنابيب"}, {"network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "length_m": 585, "measure": "pipe length", "measure_ar": "طول الأنابيب"}, {"network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "length_m": 580, "measure": "pipe length", "measure_ar": "طول الأنابيب"}, {"network": "Electrical", "network_ar": "الكهرباء", "package": "Dry", "length_m": 119, "measure": "UPVC duct bank", "measure_ar": "مجموعة مجاري UPVC"}], "depths": [{"zone": "Zone 1", "network": "Sewer", "network_ar": "الصرف الصحي", "invert_level_m": 1.18, "depth_m": 3.82, "order": 1}, {"zone": "Zone 1", "network": "Water", "network_ar": "مياه الشرب", "invert_level_m": 2.59, "depth_m": 2.41, "order": 2}, {"zone": "Zone 1", "network": "Storm", "network_ar": "مياه الأمطار", "invert_level_m": 2.83, "depth_m": 2.17, "order": 3}, {"zone": "Zone 1", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "invert_level_m": 3.03, "depth_m": 1.97, "order": 4}], "risks": [{"id": "R1", "risk": "Delay in accurate design inputs", "risk_ar": "تأخر مدخلات التصميم الدقيقة", "probability": "Medium", "probability_ar": "متوسطة", "impact": "High", "impact_ar": "عالية", "owner": "Client / Consultant / Engineering / BIM", "owner_ar": "العميل / الاستشاري / الهندسة / BIM", "strategy": "Mitigate", "strategy_ar": "تخفيف", "mitigation": "Early coordination workshops, clear input requirements, responsibility matrix and submission dates.", "mitigation_ar": "ورش تنسيق مبكرة، متطلبات مدخلات واضحة، مصفوفة مسؤوليات ومواعيد تقديم."}, {"id": "R2", "risk": "Delay in submittal approvals", "risk_ar": "تأخر اعتماد التقديمات", "probability": "Medium", "probability_ar": "متوسطة", "impact": "High", "impact_ar": "عالية", "owner": "Engineering / BIM / Consultant / Client", "owner_ar": "الهندسة / BIM / الاستشاري / العميل", "strategy": "Mitigate", "strategy_ar": "تخفيف", "mitigation": "Three packages (materials, clash-free BIM model, shop drawings) tracked in a log with target approval dates.", "mitigation_ar": "ثلاث حزم (المواد، نموذج BIM خالٍ من التعارضات، المخططات التنفيذية) تُتابَع في سجل بمواعيد اعتماد مستهدفة."}, {"id": "R3", "risk": "Procurement delay / long-lead slippage", "risk_ar": "تأخر المشتريات / المواد طويلة التوريد", "probability": "High", "probability_ar": "عالية", "impact": "High", "impact_ar": "عالية", "owner": "Ojaimi Procurement / PM", "owner_ar": "مشتريات العجيمي / مدير المشروع", "strategy": "Mitigate", "strategy_ar": "تخفيف", "mitigation": "Dual sourcing, early POs, expediting, buffer stock per zone, delivery dates tied to zone schedule.", "mitigation_ar": "مصدران للتوريد، أوامر شراء مبكرة، متابعة الموردين، مخزون احتياطي لكل منطقة، وربط مواعيد التوريد بجدول المناطق."}, {"id": "R4", "risk": "Logistics constraints and site congestion", "risk_ar": "قيود لوجستية وازدحام الموقع", "probability": "High", "probability_ar": "عالية", "impact": "High", "impact_ar": "عالية", "owner": "Ojaimi Commercial", "owner_ar": "الإدارة التجارية – العجيمي", "strategy": "Mitigate", "strategy_ar": "تخفيف", "mitigation": "Satellite yards, just-in-time deliveries, coordination with other subcontractors on access.", "mitigation_ar": "ساحات تخزين فرعية، توريد في الوقت المناسب، والتنسيق مع المقاولين الآخرين على الوصول."}, {"id": "R5", "risk": "Damage to installed utilities by other contractors", "risk_ar": "تضرر الشبكات المنفذة بسبب أعمال مقاولين آخرين", "probability": "High", "probability_ar": "عالية", "impact": "High", "impact_ar": "عالية", "owner": "Ojaimi / SBG / Others", "owner_ar": "العجيمي / SBG / الآخرون", "strategy": "Avoid", "strategy_ar": "تجنّب", "mitigation": "Protection after backfill, warning tape, marker posts, as-builts, coordination before nearby excavation.", "mitigation_ar": "حماية بعد الردم، شريط تحذير، علامات أرضية، مخططات As-built، وتنسيق قبل أي حفر قريب."}], "wbs": [{"code": "STK-BL-Rev-03.KM", "name": "Project milestones", "name_ar": "معالم المشروع", "level": 1, "parent": null, "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.3", "name": "General", "name_ar": "عام", "level": 1, "parent": null, "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.3.1", "name": "Mobilization", "name_ar": "التجهيز والتعبئة", "level": 2, "parent": "STK-BL-Rev-03.3", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.3.2", "name": "Preliminaries", "name_ar": "الأعمال التمهيدية", "level": 2, "parent": "STK-BL-Rev-03.3", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.3.3", "name": "General finish milestone", "name_ar": "معلم نهاية الأعمال العامة", "level": 2, "parent": "STK-BL-Rev-03.3", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.EN", "name": "Engineering", "name_ar": "الهندسة", "level": 1, "parent": null, "basis": null, "basis_label": "Shop drawings + material submittals", "basis_label_ar": "المخططات التنفيذية + اعتماد المواد", "rollup": true}, {"code": "EN-DR-1000", "name": "Design review", "name_ar": "مراجعة التصميم", "level": 2, "parent": "STK-BL-Rev-03.EN", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.EN.1", "name": "BIM model", "name_ar": "نموذج BIM", "level": 2, "parent": "STK-BL-Rev-03.EN", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.EN.MS", "name": "Material submittals", "name_ar": "اعتماد المواد", "level": 2, "parent": "STK-BL-Rev-03.EN", "basis": "ms", "basis_label": "Materials approved (E2)", "basis_label_ar": "المواد المعتمدة (E2)", "rollup": true}, {"code": "STK-BL-Rev-03.EN.MOS", "name": "Method statement", "name_ar": "طرق التنفيذ", "level": 2, "parent": "STK-BL-Rev-03.EN", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.EN.SD", "name": "Shop drawings", "name_ar": "المخططات التنفيذية", "level": 2, "parent": "STK-BL-Rev-03.EN", "basis": "sd", "basis_label": "Shop drawings approved (E1)", "basis_label_ar": "المخططات المعتمدة (E1)", "rollup": true}, {"code": "STK-BL-Rev-03.EN.3", "name": "Engineering finish milestone", "name_ar": "معلم نهاية الهندسة", "level": 2, "parent": "STK-BL-Rev-03.EN", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.Prc", "name": "Procurement", "name_ar": "المشتريات", "level": 1, "parent": null, "basis": null, "basis_label": "Wet + dry POs", "basis_label_ar": "أوامر الشراء الرطبة + الجافة", "rollup": true}, {"code": "STK-BL-Rev-03.Prc.1", "name": "Wet utilities", "name_ar": "الشبكات الرطبة", "level": 2, "parent": "STK-BL-Rev-03.Prc", "basis": "po-wet", "basis_label": "Wet POs issued", "basis_label_ar": "أوامر الشراء الرطبة الصادرة", "rollup": true}, {"code": "STK-BL-Rev-03.Prc.2", "name": "Dry utilities", "name_ar": "الشبكات الجافة", "level": 2, "parent": "STK-BL-Rev-03.Prc", "basis": "po-dry", "basis_label": "Dry POs issued", "basis_label_ar": "أوامر الشراء الجافة الصادرة", "rollup": true}, {"code": "STK-BL-Rev-03.Prc.3", "name": "Procurement finish milestone", "name_ar": "معلم نهاية المشتريات", "level": 2, "parent": "STK-BL-Rev-03.Prc", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.4", "name": "Construction", "name_ar": "الإنشاءات", "level": 1, "parent": null, "basis": null, "basis_label": "Installed vs planned m", "basis_label_ar": "المنفذ مقابل المخطط (م)", "rollup": true}, {"code": "STK-BL-Rev-03.4.1", "name": "Zone-01", "name_ar": "المنطقة 01", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 1", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.4.2", "name": "Zone-02", "name_ar": "المنطقة 02", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 2", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.4.11", "name": "Zone-03", "name_ar": "المنطقة 03", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 3", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.4.3", "name": "Zone-04", "name_ar": "المنطقة 04", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 4", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.4.5", "name": "Zone-05", "name_ar": "المنطقة 05", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 5", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.4.4", "name": "Zone-06", "name_ar": "المنطقة 06", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 6", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.4.6", "name": "Zone-07", "name_ar": "المنطقة 07", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 7", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.4.7", "name": "Zone-08", "name_ar": "المنطقة 08", "level": 2, "parent": "STK-BL-Rev-03.4", "basis": "zone:Zone 8", "basis_label": "Installed m (not reported)", "basis_label_ar": "الأمتار المنفذة (غير مُبلَّغة)", "rollup": true}, {"code": "STK-BL-Rev-03.CO", "name": "Close out", "name_ar": "الإقفال", "level": 1, "parent": null, "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}, {"code": "STK-BL-Rev-03.CO.T&C", "name": "Testing & commissioning", "name_ar": "الاختبار والتشغيل", "level": 2, "parent": "STK-BL-Rev-03.CO", "basis": null, "basis_label": "No log yet", "basis_label_ar": "لا يوجد سجل بعد", "rollup": true}], "project": [{"field": "type", "en": "Design, VE, supply & installation (design-build)", "ar": "تصميم وهندسة قيمية وتوريد وتركيب (تصميم وتنفيذ)"}, {"field": "start", "en": "06 Jul 2026", "ar": "06 يوليو 2026"}, {"field": "asof", "en": "13 Oct 2026", "ar": "13 أكتوبر 2026"}, {"field": "client", "en": "SEVEN – Saudi Entertainment Ventures", "ar": "سڤن – شركة الترفيه السعودية"}, {"field": "contractor", "en": "Mohammed Al-Ojaimi Contracting Est.", "ar": "مؤسسة محمد العجيمي للمقاولات"}], "closeout": [{"id": "Zone 1 · Water", "zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "test": "Hydrostatic test & disinfection", "test_ar": "اختبار الضغط الهيدروستاتيكي والتعقيم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 1 · Fire fighting", "zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "test": "Hydrostatic test & hydrant flow", "test_ar": "اختبار الضغط وتدفق الحنفيات", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 1 · Sewer", "zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "test": "CCTV survey & air test", "test_ar": "مسح CCTV واختبار الهواء", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 1 · Storm", "zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 1 · MV", "zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "test": "Duct mandrel test & handover", "test_ar": "اختبار سنبك المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 1 · ICT", "zone": "Zone 1", "zone_ar": "المنطقة 1", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 2 · Water", "zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "test": "Hydrostatic test & disinfection", "test_ar": "اختبار الضغط الهيدروستاتيكي والتعقيم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 2 · Fire fighting", "zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "test": "Hydrostatic test & hydrant flow", "test_ar": "اختبار الضغط وتدفق الحنفيات", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 2 · Sewer", "zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "test": "CCTV survey & air test", "test_ar": "مسح CCTV واختبار الهواء", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 2 · Storm", "zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 2 · MV", "zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "MV", "network_ar": "الجهد المتوسط", "package": "Dry", "test": "Duct mandrel test & handover", "test_ar": "اختبار سنبك المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 2 · ICT", "zone": "Zone 2", "zone_ar": "المنطقة 2", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 3 · Water", "zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Water", "network_ar": "مياه الشرب", "package": "Wet", "test": "Hydrostatic test & disinfection", "test_ar": "اختبار الضغط الهيدروستاتيكي والتعقيم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 3 · Fire fighting", "zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Fire fighting", "network_ar": "مكافحة الحريق", "package": "Wet", "test": "Hydrostatic test & hydrant flow", "test_ar": "اختبار الضغط وتدفق الحنفيات", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 3 · Sewer", "zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Sewer", "network_ar": "الصرف الصحي", "package": "Wet", "test": "CCTV survey & air test", "test_ar": "مسح CCTV واختبار الهواء", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 3 · Storm", "zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 3 · ICT", "zone": "Zone 3", "zone_ar": "المنطقة 3", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 4 · Storm", "zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 4 · ICT", "zone": "Zone 4", "zone_ar": "المنطقة 4", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 5 · Storm", "zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 5 · LV", "zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "test": "Duct mandrel test & handover", "test_ar": "اختبار سنبك المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 5 · ICT", "zone": "Zone 5", "zone_ar": "المنطقة 5", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 6 · Storm", "zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 6 · LV", "zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "test": "Duct mandrel test & handover", "test_ar": "اختبار سنبك المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 6 · ICT", "zone": "Zone 6", "zone_ar": "المنطقة 6", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 7 · Storm", "zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 7 · LV", "zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "test": "Duct mandrel test & handover", "test_ar": "اختبار سنبك المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 7 · ICT", "zone": "Zone 7", "zone_ar": "المنطقة 7", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 8 · Storm", "zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "Storm", "network_ar": "مياه الأمطار", "package": "Wet", "test": "CCTV survey & water test", "test_ar": "مسح CCTV واختبار المياه", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 8 · LV", "zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "LV", "network_ar": "الجهد المنخفض", "package": "Dry", "test": "Duct mandrel test & handover", "test_ar": "اختبار سنبك المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}, {"id": "Zone 8 · ICT", "zone": "Zone 8", "zone_ar": "المنطقة 8", "network": "ICT", "network_ar": "الاتصالات وتقنية المعلومات", "package": "Dry", "test": "Duct rodding test & handover", "test_ar": "اختبار تمرير المجاري والتسليم", "status": "Not started", "status_ar": "لم يبدأ"}]};
+const DEFAULTS={lang:"en",pkg:"All",net:"All",zone:"All",wk:null};
+let params=Object.assign({},DEFAULTS);
+const calcs={},draws={},onDatas=[];let memo={};let queued=false;
+function calcVal(id){if(!(id in memo)){const c=calcs[id];memo[id]=c.fn(...c.inputs.map(i=>window.dash.data(i).data));}return memo[id];}
+function runDraw(name){(draws[name]?document.querySelectorAll('[data-draw="'+name+'"]'):[]).forEach(el=>{if(el.closest('[hidden]'))return;try{draws[name](el);}catch(e){console.error(name,e);}});}
+function render(){queued=false;onDatas.forEach(f=>{try{f();}catch(e){console.error(e);}});Object.keys(draws).forEach(runDraw);}
+function schedule(){if(!queued){queued=true;requestAnimationFrame(render);}}
+window.dash={
+ colors:["#2a78b8","#d08a2c","#4a9d6b","#8a5cc2","#c2504a","#4fa3a0","#a8744a","#7a8794"],
+ data(id){if(DATA[id])return{status:"ok",data:DATA[id]};if(calcs[id])return{status:"ok",data:calcVal(id)};return{status:"missing",data:[]};},
+ calc(id,o){calcs[id]=o;memo={};},
+ draw(name,fn){if(fn){draws[name]=fn;}else{runDraw(name);}},
+ onData(fn){onDatas.push(fn);},
+ params(){return Object.assign({},params);},
+ setParams(o){Object.assign(params,o);schedule();},
+ resetParams(){params=Object.assign({},DEFAULTS);schedule();},
+ setLink(n){try{history.replaceState(null,"","#"+n);}catch(e){}schedule();},
+ refresh(){schedule();}
+};
+window.addEventListener("resize",schedule);
+document.addEventListener("DOMContentLoaded",render);
+})();
+</script>
+</head><body>
+<div id="dash-root">
+
+
+<div class="tw">
+<div class="tw-app">
+  <aside class="tw-sb">
+    <div class="tw-sb-brand">
+      <div class="tw-logo">TA</div>
+      <div><div class="tw-sb-t"><span class="en-t">PROJECT CONTROLS</span><span class="ar-t">ضبط المشروع</span></div><div class="tw-sb-s">TA'AWON · AL KHOBAR</div></div>
+    </div>
+    <div class="tw-sb-proj">
+      <div class="tw-sb-k"><span class="en-t">Active project</span><span class="ar-t">المشروع النشط</span></div>
+      <div class="tw-sb-name">Ta'awon Al Khobar</div>
+      <div class="tw-sb-cl"><span class="en-t" data-draw="val" data-fmt="text" data-source="project" data-field="en" data-where="field=client">—</span><span class="ar-t" data-draw="val" data-fmt="text" data-source="project" data-field="ar" data-where="field=client">—</span></div>
+      <div class="tw-sb-live"><span class="en-t">Weekly update</span><span class="ar-t">تحديث أسبوعي</span></div>
+    </div>
+    <nav class="tw-nav" aria-label="Pages">
+      <button data-tab="overview" aria-current="page"><span class="num">01</span><span class="en-t">Overview</span><span class="ar-t">نظرة عامة</span></button>
+      <button data-tab="engineering"><span class="num">02</span><span class="en-t">Engineering</span><span class="ar-t">الهندسة</span></button>
+      <button data-tab="procurement"><span class="num">03</span><span class="en-t">Procurement</span><span class="ar-t">المشتريات</span></button>
+      <button data-tab="construction"><span class="num">04</span><span class="en-t">Construction</span><span class="ar-t">الإنشاءات</span></button>
+      <button data-tab="risks"><span class="num">05</span><span class="en-t">Risks</span><span class="ar-t">المخاطر</span></button>
+      <button data-tab="closeout"><span class="num">06</span><span class="en-t">Close out</span><span class="ar-t">الإقفال</span></button>
+    </nav>
+    <div class="tw-sb-foot">
+      <span class="en-t">Contractor</span><span class="ar-t">المقاول</span>
+      <b><span class="en-t" data-draw="val" data-fmt="text" data-source="project" data-field="en" data-where="field=contractor">—</span><span class="ar-t" data-draw="val" data-fmt="text" data-source="project" data-field="ar" data-where="field=contractor">—</span></b>
+      <div class="tw-sb-tag">DESIGN · VE · SUPPLY · INSTALL</div>
+    </div>
+  </aside>
+
+  <main class="tw-main">
+    <div class="tw-top">
+      <div class="tw-crumb"><span class="en-t">Project portfolio</span><span class="ar-t">محفظة المشاريع</span> / <b>TA'AWON AL KHOBAR</b></div>
+      <div class="tw-topr">
+        <span class="tw-asof"><span class="en-t">Status as of</span><span class="ar-t">الحالة حتى</span> <span class="en-t" data-draw="val" data-fmt="text" data-source="project" data-field="en" data-where="field=asof">—</span><span class="ar-t" data-draw="val" data-fmt="text" data-source="project" data-field="ar" data-where="field=asof">—</span></span>
+        <span class="tw-hint"><span class="en-t">Weekly update &amp; CSV download: Sources</span><span class="ar-t">التحديث الأسبوعي وتنزيل CSV: من Sources</span></span>
+        <div class="tw-lang" role="group" aria-label="Language"><button class="tw-lang-b" data-lang="en" aria-pressed="true">EN</button><button class="tw-lang-b" data-lang="ar" aria-pressed="false">عربي</button></div>
+      </div>
+    </div>
+
+    <div class="tw-filters">
+      <label><span><span class="en-t">Report week</span><span class="ar-t">أسبوع التقرير</span></span><select data-draw="f-wk" data-source="e1" aria-label="Report week"></select></label>
+      <label><span><span class="en-t">Package</span><span class="ar-t">التخصص</span></span><select data-draw="f-pkg" aria-label="Package"></select></label>
+      <label><span><span class="en-t">Network</span><span class="ar-t">الشبكة</span></span><select data-draw="f-net" data-source="scope" aria-label="Network"></select></label>
+      <label><span><span class="en-t">Zone</span><span class="ar-t">المنطقة</span></span><select data-draw="f-zone" data-source="scope" aria-label="Zone"></select></label>
+      <button class="tw-reset"><span class="en-t">Reset</span><span class="ar-t">إعادة ضبط</span></button>
+    </div>
+
+    <!-- 01 OVERVIEW -->
+    <section class="tw-page" id="overview" data-page>
+      <p class="tw-kick"><span class="en-t">Weekly project review</span><span class="ar-t">مراجعة المشروع الأسبوعية</span></p>
+      <h1><span class="en-t">Project overview</span><span class="ar-t">نظرة عامة على المشروع</span></h1>
+      <div class="tw-info">
+        <span><span class="k"><span class="en-t">Project type</span><span class="ar-t">نوع المشروع</span></span><span class="en-t" data-draw="val" data-fmt="text" data-source="project" data-field="en" data-where="field=type">—</span><span class="ar-t" data-draw="val" data-fmt="text" data-source="project" data-field="ar" data-where="field=type">—</span></span>
+        <span><span class="k"><span class="en-t">Start date</span><span class="ar-t">تاريخ البدء</span></span><span class="en-t" data-draw="val" data-fmt="text" data-source="project" data-field="en" data-where="field=start">—</span><span class="ar-t" data-draw="val" data-fmt="text" data-source="project" data-field="ar" data-where="field=start">—</span></span>
+      </div>
+      <p class="tw-take"><span class="en-t"><b data-draw="val" data-fmt="pct" data-kpi="Shop drawings" data-source="kpis" data-field="pct" data-where="">—</b> of shop drawings are approved, but only <b data-draw="val" data-fmt="pct" data-kpi="Material submittals" data-source="kpis" data-field="pct" data-where="">—</b> of material submittals and <b data-draw="val" data-fmt="pct" data-kpi="Purchase orders" data-source="kpis" data-field="pct" data-where="">—</b> of purchase orders are done.</span><span class="ar-t">تم اعتماد <b data-draw="val" data-fmt="pct" data-kpi="Shop drawings" data-source="kpis" data-field="pct" data-where="">—</b> من المخططات التنفيذية، لكن <b data-draw="val" data-fmt="pct" data-kpi="Material submittals" data-source="kpis" data-field="pct" data-where="">—</b> فقط من اعتمادات المواد و<b data-draw="val" data-fmt="pct" data-kpi="Purchase orders" data-source="kpis" data-field="pct" data-where="">—</b> من أوامر الشراء.</span></p>
+
+      <div class="tw-banner" id="checks">
+        <h2><span class="en-t">Data checks</span><span class="ar-t">فحوص البيانات</span> · <span data-draw="checkcount" data-source="checks">—</span></h2>
+        <ul data-draw="checklist" data-source="checks"></ul>
+      </div>
+
+      <div class="tw-tiles">
+        <div class="tw-card tw-tile" style="--acc:var(--color-ok)">
+          <div class="tw-tl"><span class="en-t">Shop drawings approved</span><span class="ar-t">المخططات المعتمدة</span></div>
+          <div class="tw-big" data-draw="val" data-fmt="pct" data-kpi="Shop drawings" data-source="kpis" data-field="pct" data-where="">—</div>
+          <div class="tw-sub"><span data-draw="val" data-kpi="Shop drawings" data-source="kpis" data-field="done" data-where="">—</span> / <span data-draw="val" data-kpi="Shop drawings" data-source="kpis" data-field="total" data-where="">—</span> · E1</div>
+          <span class="tw-chip" data-draw="delta" data-source="weekcmp" data-field="change_pp" data-where="log=E1">—</span>
+        </div>
+        <div class="tw-card tw-tile" style="--acc:var(--color-ok)">
+          <div class="tw-tl"><span class="en-t">Materials approved</span><span class="ar-t">المواد المعتمدة</span></div>
+          <div class="tw-big" data-draw="val" data-fmt="pct" data-kpi="Material submittals" data-source="kpis" data-field="pct" data-where="">—</div>
+          <div class="tw-sub"><span data-draw="val" data-kpi="Material submittals" data-source="kpis" data-field="done" data-where="">—</span> / <span data-draw="val" data-kpi="Material submittals" data-source="kpis" data-field="total" data-where="">—</span> · E2</div>
+          <span class="tw-chip" data-draw="delta" data-source="weekcmp" data-field="change_pp" data-where="log=E2">—</span>
+        </div>
+        <div class="tw-card tw-tile" style="--acc:var(--color-warn)">
+          <div class="tw-tl"><span class="en-t">Purchase orders issued</span><span class="ar-t">أوامر الشراء الصادرة</span></div>
+          <div class="tw-big" data-draw="val" data-fmt="pct" data-kpi="Purchase orders" data-source="kpis" data-field="pct" data-where="">—</div>
+          <div class="tw-sub"><span data-draw="val" data-kpi="Purchase orders" data-source="kpis" data-field="done" data-where="">—</span> / <span data-draw="val" data-kpi="Purchase orders" data-source="kpis" data-field="total" data-where="">—</span> · PO</div>
+          <span class="tw-chip" data-draw="delta" data-source="weekcmp" data-field="change_pp" data-where="log=PO">—</span>
+        </div>
+        <div class="tw-card tw-tile" style="--acc:var(--cds-chart-reference)">
+          <div class="tw-tl"><span class="en-t">Construction complete</span><span class="ar-t">نسبة تنفيذ الإنشاءات</span></div>
+          <div class="tw-big" data-draw="val" data-fmt="pct" data-kpi="Construction" data-source="kpis" data-field="pct" data-where="">—</div>
+          <div class="tw-sub"><span class="en-t">Planned</span><span class="ar-t">المخطط</span> <span data-draw="val" data-fmt="m" data-kpi="Construction" data-source="kpis" data-field="total" data-where="">—</span></div>
+          <span class="tw-chip"><span class="en-t">Installed lengths not reported</span><span class="ar-t">الأطوال المنفذة غير مُبلَّغة</span></span>
+        </div>
+        <div class="tw-card tw-tile" style="--acc:var(--color-bad)">
+          <div class="tw-tl"><span class="en-t">Open risks</span><span class="ar-t">المخاطر المفتوحة</span></div>
+          <div class="tw-big" data-draw="val" data-source="riskcount" data-field="n" data-where="level=All">—</div>
+          <div class="tw-sub"><span data-draw="val" data-source="riskcount" data-field="n" data-where="level=High">—</span> <span class="en-t">high probability</span><span class="ar-t">عالية الاحتمال</span></div>
+        </div>
+      </div>
+
+      <div class="tw-grid2">
+        <div class="tw-card">
+          <h2><span class="en-t">WBS progress</span><span class="ar-t">تقدم هيكل تجزئة العمل WBS</span> · STK-BL-Rev-03</h2>
+          <p class="tw-note"><span class="en-t">Click a phase to fold or unfold it. Each item is measured by its log; a phase sums its children. Blank means no log tracks it yet.</span><span class="ar-t">اضغط على المرحلة لطيّها أو فتحها. كل بند يُقاس من سجله، والمرحلة تجمع بنودها. الخانة الفارغة تعني لا يوجد سجل بعد.</span></p>
+          <div class="tw-tablebox en-t" style="max-height:none">
+            <table class="tw-table tw-wbs" data-source="wbsprog" data-row-key="code">
+              <thead><tr><th data-field="code">WBS code</th><th data-field="name">Activity</th><th data-field="pct">Progress</th><th data-field="done" class="num">Done</th><th data-field="total" class="num">Total</th><th data-field="basis">Measured by</th></tr></thead>
+              <tbody data-draw="wbsrows"></tbody>
+            </table>
+          </div>
+          <div class="tw-tablebox ar-t" style="max-height:none">
+            <table class="tw-table tw-wbs" data-source="wbsprog" data-row-key="code">
+              <thead><tr><th data-field="code">الكود</th><th data-field="name_ar">النشاط</th><th data-field="pct">التقدم</th><th data-field="done" class="num">المنجز</th><th data-field="total" class="num">الإجمالي</th><th data-field="basis_ar">يُقاس من</th></tr></thead>
+              <tbody data-draw="wbsrows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="tw-stack">
+          <div class="tw-card">
+            <h2><span class="en-t">This week vs last week</span><span class="ar-t">هذا الأسبوع مقابل السابق</span></h2>
+            <p class="tw-note"><span class="en-t">Fills in once the next weekly report is added.</span><span class="ar-t">يمتلئ عند إضافة تقرير الأسبوع التالي.</span></p>
+            <div class="tw-tablebox">
+              <table class="tw-table" data-source="weekcmp" data-row-key="log">
+                <thead><tr><th data-field="log"><span class="en-t">Log</span><span class="ar-t">السجل</span></th><th data-field="last_week"><span class="en-t">Last week</span><span class="ar-t">الأسبوع السابق</span></th><th data-field="this_week"><span class="en-t">This week</span><span class="ar-t">هذا الأسبوع</span></th><th data-field="last_pct" class="num"><span class="en-t">Then</span><span class="ar-t">سابقًا</span></th><th data-field="this_pct" class="num"><span class="en-t">Now</span><span class="ar-t">الآن</span></th><th data-field="change_pp" class="num"><span class="en-t">Change</span><span class="ar-t">التغير</span></th></tr></thead>
+                <tbody data-draw="weekrows"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tw-card">
+            <h2><span class="en-t">Engineering signal</span><span class="ar-t">مؤشر الهندسة</span></h2>
+            <p class="tw-note"><span class="en-t">What is holding procurement back right now.</span><span class="ar-t">ما الذي يعطّل المشتريات الآن.</span></p>
+            <ul class="tw-signal" data-draw="signal" data-source="matvspo e1"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 ENGINEERING -->
+    <section class="tw-page" id="engineering" data-page hidden>
+      <p class="tw-kick">STK-BL-Rev-03.EN</p>
+      <h1><span class="en-t">Engineering logs</span><span class="ar-t">سجلات الهندسة</span></h1>
+      <p class="tw-lead"><span class="en-t">Approval status of shop drawings (E1) and material submittals (E2), per system.</span><span class="ar-t">حالة اعتماد المخططات التنفيذية (E1) والمواد (E2) لكل نظام.</span></p>
+      <div class="tw-legend"><span class="sw-ok"><span class="en-t">Approved</span><span class="ar-t">معتمد</span></span><span class="sw-warn"><span class="en-t">Under review</span><span class="ar-t">تحت المراجعة</span></span><span class="sw-bad"><span class="en-t">Rejected</span><span class="ar-t">مرفوض</span></span><span class="sw-ref"><span class="en-t">To resubmit</span><span class="ar-t">لإعادة التقديم</span></span><span class="sw-mut"><span class="en-t">To submit</span><span class="ar-t">للتقديم</span></span></div>
+      <div class="tw-grid">
+        <div class="tw-card"><h2><span class="en-t">Shop drawings by system (E1)</span><span class="ar-t">المخططات التنفيذية حسب النظام (E1)</span></h2><p class="tw-note"><span class="en-t">Number at the end = system total.</span><span class="ar-t">الرقم في النهاية = إجمالي النظام.</span></p><div class="tw-chart" data-draw="stack-e1" data-source="e1"></div></div>
+        <div class="tw-card"><h2><span class="en-t">Material submittals by system (E2)</span><span class="ar-t">اعتماد المواد حسب النظام (E2)</span></h2><p class="tw-note"><span class="en-t">Number at the end = system total.</span><span class="ar-t">الرقم في النهاية = إجمالي النظام.</span></p><div class="tw-chart" data-draw="stack-e2" data-source="e2"></div></div>
+      </div>
+      <div class="tw-card" style="margin-bottom:var(--cds-gap-md)">
+        <h2><span class="en-t">Shop drawing log (E1)</span><span class="ar-t">سجل المخططات التنفيذية (E1)</span></h2>
+        <div class="tw-tablebox en-t"><table class="tw-table" data-source="e1" data-row-key="week,system" data-filter="wk pkg"><thead><tr><th data-field="system">System</th><th data-field="package">Package</th><th data-field="total" class="num">Total</th><th data-field="approved" class="num">Approved</th><th data-field="under_review" class="num">Under review</th><th data-field="rejected" class="num">Rejected</th><th data-field="to_submit" class="num">To submit</th><th data-field="to_resubmit" class="num">To resubmit</th><th data-field="wk_approved" class="num">This week approved</th><th data-field="wk_under_review" class="num">This week under review</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+        <div class="tw-tablebox ar-t"><table class="tw-table" data-source="e1" data-row-key="week,system" data-filter="wk pkg"><thead><tr><th data-field="system_ar">النظام</th><th data-field="package_ar">التخصص</th><th data-field="total" class="num">الإجمالي</th><th data-field="approved" class="num">معتمد</th><th data-field="under_review" class="num">تحت المراجعة</th><th data-field="rejected" class="num">مرفوض</th><th data-field="to_submit" class="num">للتقديم</th><th data-field="to_resubmit" class="num">لإعادة التقديم</th><th data-field="wk_approved" class="num">معتمد هذا الأسبوع</th><th data-field="wk_under_review" class="num">تحت المراجعة هذا الأسبوع</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+      </div>
+      <div class="tw-card">
+        <h2><span class="en-t">Material submittal log (E2)</span><span class="ar-t">سجل اعتماد المواد (E2)</span></h2>
+        <div class="tw-tablebox en-t"><table class="tw-table" data-source="e2" data-row-key="week,system" data-filter="wk pkg"><thead><tr><th data-field="system">System</th><th data-field="package">Package</th><th data-field="total" class="num">Total</th><th data-field="approved" class="num">Approved</th><th data-field="under_review" class="num">Under review</th><th data-field="rejected" class="num">Rejected</th><th data-field="to_submit" class="num">To submit</th><th data-field="to_resubmit" class="num">To resubmit</th><th data-field="wk_approved" class="num">This week approved</th><th data-field="wk_under_review" class="num">This week under review</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+        <div class="tw-tablebox ar-t"><table class="tw-table" data-source="e2" data-row-key="week,system" data-filter="wk pkg"><thead><tr><th data-field="system_ar">النظام</th><th data-field="package_ar">التخصص</th><th data-field="total" class="num">الإجمالي</th><th data-field="approved" class="num">معتمد</th><th data-field="under_review" class="num">تحت المراجعة</th><th data-field="rejected" class="num">مرفوض</th><th data-field="to_submit" class="num">للتقديم</th><th data-field="to_resubmit" class="num">لإعادة التقديم</th><th data-field="wk_approved" class="num">معتمد هذا الأسبوع</th><th data-field="wk_under_review" class="num">تحت المراجعة هذا الأسبوع</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- 03 PROCUREMENT -->
+    <section class="tw-page" id="procurement" data-page hidden>
+      <p class="tw-kick">STK-BL-Rev-03.Prc</p>
+      <h1><span class="en-t">Procurement</span><span class="ar-t">المشتريات</span></h1>
+      <p class="tw-lead"><span class="en-t">Purchase orders per system, and whether each follows an approved material submittal. Payment, delivery and commercial fields are still blank in the source log.</span><span class="ar-t">أوامر الشراء لكل نظام، وهل كل منها يتبع اعتماد مواد. حقول الدفع والتوريد والملاحظات التجارية ما زالت فارغة في السجل.</span></p>
+      <div class="tw-legend"><span class="sw-ok"><span class="en-t">PO issued</span><span class="ar-t">أمر شراء صادر</span></span><span class="sw-mut"><span class="en-t">PO pending</span><span class="ar-t">أمر شراء معلّق</span></span></div>
+      <div class="tw-grid">
+        <div class="tw-card"><h2><span class="en-t">Purchase orders by system</span><span class="ar-t">أوامر الشراء حسب النظام</span></h2><p class="tw-note"><span class="en-t">Number at the end = system total.</span><span class="ar-t">الرقم في النهاية = إجمالي النظام.</span></p><div class="tw-chart" data-draw="stack-po" data-source="po"></div></div>
+        <div class="tw-card"><h2><span class="en-t">Material approval vs purchase orders</span><span class="ar-t">اعتماد المواد مقابل أوامر الشراء</span></h2><p class="tw-note"><span class="en-t">A PO should follow an approved material.</span><span class="ar-t">أمر الشراء يجب أن يأتي بعد اعتماد المادة.</span></p>
+          <div class="tw-tablebox en-t"><table class="tw-table" data-source="matvspo" data-row-key="system" data-filter="pkg"><thead><tr><th data-field="system">System</th><th data-field="mat_approved" class="num">Materials approved</th><th data-field="mat_total" class="num">Materials total</th><th data-field="po_issued" class="num">POs issued</th><th data-field="po_total" class="num">POs total</th><th data-field="status">Status</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+          <div class="tw-tablebox ar-t"><table class="tw-table" data-source="matvspo" data-row-key="system" data-filter="pkg"><thead><tr><th data-field="system_ar">النظام</th><th data-field="mat_approved" class="num">مواد معتمدة</th><th data-field="mat_total" class="num">إجمالي المواد</th><th data-field="po_issued" class="num">أوامر صادرة</th><th data-field="po_total" class="num">إجمالي الأوامر</th><th data-field="status_ar">الحالة</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 CONSTRUCTION -->
+    <section class="tw-page" id="construction" data-page hidden>
+      <p class="tw-kick">STK-BL-Rev-03.4</p>
+      <h1><span class="en-t">Construction</span><span class="ar-t">الإنشاءات</span></h1>
+      <p class="tw-lead"><span class="en-t">Network scope per zone and planned quantities. Installed lengths are not reported yet.</span><span class="ar-t">نطاق الشبكات في كل منطقة والكميات المخططة. الأطوال المنفذة لم تُبلَّغ بعد.</span></p>
+      <div class="tw-card" style="margin-bottom:var(--cds-gap-md)">
+        <h2><span class="en-t">Network scope by zone</span><span class="ar-t">نطاق الشبكات حسب المنطقة</span></h2>
+        <p class="tw-note"><span class="en-t">Cells show planned length where the kick-off deck gives it; dashed cells are out of scope.</span><span class="ar-t">الخانات تعرض الطول المخطط حيث يتوفر في عرض البدء؛ الخانات المتقطعة خارج النطاق.</span></p>
+        <div class="tw-legend"><span data-swatch="0"><span class="en-t">Wet utilities</span><span class="ar-t">الشبكات الرطبة</span></span><span data-swatch="1"><span class="en-t">Dry utilities (civil)</span><span class="ar-t">الشبكات الجافة (مدني)</span></span></div>
+        <div class="tw-matrix tw-tablebox" data-draw="matrix" data-source="scope"></div>
+      </div>
+      <div class="tw-grid">
+        <div class="tw-card"><h2><span class="en-t">Total network length in scope</span><span class="ar-t">إجمالي أطوال الشبكات في النطاق</span></h2><p class="tw-note"><span class="en-t">Whole-project quantities.</span><span class="ar-t">كميات المشروع كاملًا.</span></p><div class="tw-chart" data-draw="nettotals" data-source="nettotals"></div></div>
+        <div class="tw-card"><h2><span class="en-t">Zone 1 depth sequence</span><span class="ar-t">تسلسل الأعماق – المنطقة 1</span></h2><p class="tw-note"><span class="en-t">Depth below ground, section Z1.S1. Works go deepest first.</span><span class="ar-t">العمق تحت سطح الأرض، القطاع Z1.S1. التنفيذ يبدأ بالأعمق.</span></p><div class="tw-chart" data-draw="depths" data-source="depths"></div></div>
+      </div>
+    </section>
+
+    <!-- 05 RISKS -->
+    <section class="tw-page" id="risks" data-page hidden>
+      <p class="tw-kick"><span class="en-t">Top five risks from the kick-off</span><span class="ar-t">أعلى خمسة مخاطر من اجتماع البدء</span></p>
+      <h1><span class="en-t">Risks</span><span class="ar-t">المخاطر</span></h1>
+      <div class="tw-grid">
+        <div class="tw-card"><h2><span class="en-t">Probability × impact</span><span class="ar-t">الاحتمالية × التأثير</span></h2><p class="tw-note"><span class="en-t">Hover a risk for its name.</span><span class="ar-t">مرّر المؤشر على الخطر لرؤية اسمه.</span></p><div class="tw-pos" data-draw="riskmatrix" data-source="risks"></div></div>
+        <div class="tw-card"><h2><span class="en-t">Risk register</span><span class="ar-t">سجل المخاطر</span></h2>
+          <div class="tw-tablebox en-t"><table class="tw-table" data-source="risks" data-row-key="id"><thead><tr><th data-field="id">ID</th><th data-field="risk">Risk</th><th data-field="probability">Probability</th><th data-field="impact">Impact</th><th data-field="strategy">Strategy</th><th data-field="owner">Owner</th><th data-field="mitigation">Mitigation</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+          <div class="tw-tablebox ar-t"><table class="tw-table" data-source="risks" data-row-key="id"><thead><tr><th data-field="id">الرمز</th><th data-field="risk_ar">الخطر</th><th data-field="probability_ar">الاحتمالية</th><th data-field="impact_ar">التأثير</th><th data-field="strategy_ar">الاستراتيجية</th><th data-field="owner_ar">المسؤول</th><th data-field="mitigation_ar">إجراءات المعالجة</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 CLOSE OUT -->
+    <section class="tw-page" id="closeout" data-page hidden>
+      <p class="tw-kick">STK-BL-Rev-03.CO</p>
+      <h1><span class="en-t">Close out · testing &amp; commissioning</span><span class="ar-t">الإقفال · الاختبار والتشغيل</span></h1>
+      <p class="tw-lead"><span class="en-t">A sample checklist: one test per network and zone in scope. Status updates as testing starts.</span><span class="ar-t">قائمة فحص مقترحة: اختبار لكل شبكة ومنطقة في النطاق. تتحدث الحالة عند بدء الاختبارات.</span></p>
+      <div class="tw-tiles">
+        <div class="tw-card"><div class="tw-tl"><span class="en-t">Tests in checklist</span><span class="ar-t">اختبارات في القائمة</span></div><div class="tw-big" data-draw="val" data-source="cosum" data-field="n" data-where="status=All">—</div></div>
+        <div class="tw-card"><div class="tw-tl"><span class="en-t">Not started</span><span class="ar-t">لم يبدأ</span></div><div class="tw-big" data-draw="val" data-source="cosum" data-field="n" data-where="status=Not started">—</div></div>
+      </div>
+      <div class="tw-card">
+        <h2><span class="en-t">T&amp;C checklist</span><span class="ar-t">قائمة الاختبار والتشغيل</span></h2>
+        <p class="tw-note"><span class="en-t">Follows the zone, network and package filters.</span><span class="ar-t">تتبع فلاتر المنطقة والشبكة والتخصص.</span></p>
+        <div class="tw-tablebox en-t"><table class="tw-table" data-source="closeout" data-row-key="id" data-filter="pkg net zone"><thead><tr><th data-field="zone">Zone</th><th data-field="network">Network</th><th data-field="test">Test</th><th data-field="status">Status</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+        <div class="tw-tablebox ar-t"><table class="tw-table" data-source="closeout" data-row-key="id" data-filter="pkg net zone"><thead><tr><th data-field="zone_ar">المنطقة</th><th data-field="network_ar">الشبكة</th><th data-field="test_ar">الاختبار</th><th data-field="status_ar">الحالة</th></tr></thead><tbody data-draw="rows"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+
+
+</div>
+<script>
+/* ================= calculations ================= */
+dash.calc('kpis', {
+  inputs: ['e1', 'e2', 'po', 'scope'],
+  title: 'Headline rates by week and package',
+  description: 'Approved (or issued) over total for each log, per report week and package (All, Wet, Dry); construction is installed over planned metres, blank until installed lengths are reported.',
+  fn: (e1, e2, po, scope) => {
+    const s = (rows, k) => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const has = (v) => v !== null && v !== undefined && v !== '';
+    const weeks = [...new Set([...e1, ...e2, ...po].map((r) => r.week))];
+    const pick = (rows, p) => (p === 'All' ? rows : rows.filter((r) => r.package === p));
+    const out = [];
+    weeks.forEach((w) => ['All', 'Wet', 'Dry'].forEach((p) => {
+      const W = (rows) => pick(rows.filter((r) => r.week === w), p);
+      const add = (metric, done, total) => out.push({week: w, package: p, metric, done, total, pct: done === null || !total ? null : done / total});
+      add('Shop drawings', s(W(e1), 'approved'), s(W(e1), 'total'));
+      add('Material submittals', s(W(e2), 'approved'), s(W(e2), 'total'));
+      add('Purchase orders', s(W(po), 'issued'), s(W(po), 'total'));
+      const sc = pick(scope, p), rep = sc.filter((r) => has(r.installed_m));
+      add('Construction', rep.length ? s(rep, 'installed_m') : null, s(sc, 'planned_m'));
+    }));
+    return out;
+  }
+});
+
+dash.calc('weekcmp', {
+  inputs: ['e1', 'e2', 'po'],
+  title: 'This week vs last week',
+  description: 'For each log, the approval (or issue) rate in the latest report week and the week before, and the change in percentage points. Blank until a second week is added.',
+  fn: (e1, e2, po) => {
+    const s = (rows, k) => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    return [['E1', e1, 'approved'], ['E2', e2, 'approved'], ['PO', po, 'issued']].map(([log, rows, k]) => {
+      const weeks = [...new Set(rows.map((r) => r.week))].sort();
+      const cur = weeks[weeks.length - 1] || null, prev = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+      const rate = (w) => { const x = rows.filter((r) => r.week === w), t = s(x, 'total'); return t ? s(x, k) / t : null; };
+      const tp = cur ? rate(cur) : null, lp = prev ? rate(prev) : null;
+      return {log, this_week: cur, last_week: prev, this_pct: tp, last_pct: lp, change_pp: tp !== null && lp !== null ? (tp - lp) * 100 : null};
+    });
+  }
+});
+
+dash.calc('checks', {
+  inputs: ['e1', 'e2', 'po', 'reported', 'scope', 'nettotals'],
+  title: 'Data checks',
+  description: 'Latest week: log rows whose statuses do not add up to their total, report headlines that differ from the tables (to review), and zone quantities that cover only part of a network total (for information).',
+  fn: (e1, e2, po, reported, scope, nettotals) => {
+    const s = (rows, k) => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const latest = (rows) => { const w = [...new Set(rows.map((r) => r.week))].sort().pop(); return rows.filter((r) => r.week === w); };
+    const E1 = latest(e1), E2 = latest(e2), PO = latest(po), REP = latest(reported);
+    const out = [];
+    const st = ['approved', 'rejected', 'under_review', 'to_submit', 'to_resubmit'];
+    [['E1', E1], ['E2', E2]].forEach(([log, rows]) => rows.forEach((r) => {
+      const f = st.reduce((a, k) => a + (Number(r[k]) || 0), 0), t = Number(r.total);
+      if (f !== t) out.push({id: log + ' · ' + r.system, severity: 'review', issue: `${log} · ${r.system}: statuses add up to ${f}, total says ${t}.`, issue_ar: `${log} · ${r.system_ar}: مجموع الحالات ${f} والإجمالي ${t}.`});
+    }));
+    PO.forEach((r) => { const f = Number(r.issued) + Number(r.pending), t = Number(r.total); if (f !== t) out.push({id: 'PO · ' + r.system, severity: 'review', issue: `PO · ${r.system}: issued + pending = ${f}, total says ${t}.`, issue_ar: `PO · ${r.system_ar}: الصادر + المعلّق = ${f} والإجمالي ${t}.`}); });
+    const src = {'Shop drawings (E1)': [E1, 'approved', 'المخططات (E1)'], 'Material submittals (E2)': [E2, 'approved', 'المواد (E2)'], 'Purchase orders': [PO, 'issued', 'أوامر الشراء']};
+    REP.forEach((h) => {
+      const m = src[h.log]; if (!m) return;
+      const done = s(m[0], m[1]), total = s(m[0], 'total'), pct = total ? done / total : 0;
+      const rp = Number(h.reported_pct), rd = Number(h.reported_done), rt = Number(h.reported_total);
+      if (rd !== done || rt !== total || Math.abs(rp - pct) > 0.005) out.push({id: 'Headline · ' + h.log, severity: 'review', issue: `${h.log}: slide headline says ${(rp * 100).toFixed(1)}% (${rd} of ${rt}); the table gives ${(pct * 100).toFixed(1)}% (${done} of ${total}).`, issue_ar: `${m[2]}: عنوان الشريحة ${(rp * 100).toFixed(1)}% (${rd} من ${rt})، والجدول يعطي ${(pct * 100).toFixed(1)}% (${done} من ${total}).`});
+    });
+    nettotals.forEach((n) => {
+      const z = scope.filter((r) => r.network === n.network && r.planned_m !== null && r.planned_m !== undefined);
+      if (!z.length) return;
+      const known = s(z, 'planned_m'), tot = Number(n.length_m);
+      if (Math.abs(known - tot) > 1) out.push({id: 'Quantities · ' + n.network, severity: 'info', issue: `${n.network}: zone lengths known for ${known.toFixed(0)} m of ${tot} m (other zones not detailed yet).`, issue_ar: `${n.network_ar}: أطوال المناطق معروفة لـ ${known.toFixed(0)} م من ${tot} م (باقي المناطق لم تُفصَّل بعد).`});
+    });
+    return out;
+  }
+});
+
+dash.calc('matvspo', {
+  inputs: ['e2', 'po'],
+  title: 'Material approval vs POs',
+  description: 'Latest week: joins the material submittal log and the PO log by system and labels how far each system has moved.',
+  fn: (e2, po) => {
+    const latest = (rows) => { const w = [...new Set(rows.map((r) => r.week))].sort().pop(); return rows.filter((r) => r.week === w); };
+    const P = latest(po);
+    const AR = {'PO ahead of approval': 'أمر شراء قبل الاعتماد', 'Not started': 'لم يبدأ', 'Approved, PO pending': 'معتمد، أمر الشراء معلّق', 'POs issued for approved items': 'صدرت أوامر شراء للمعتمد'};
+    return latest(e2).map((m) => {
+      const p = P.find((r) => r.system === m.system) || {};
+      const ma = Number(m.approved) || 0, pi = Number(p.issued) || 0;
+      const status = pi > ma ? 'PO ahead of approval' : (ma === 0 && pi === 0 ? 'Not started' : (ma > pi ? 'Approved, PO pending' : 'POs issued for approved items'));
+      return {system: m.system, system_ar: m.system_ar, package: m.package, mat_approved: ma, mat_total: Number(m.total) || 0, po_issued: pi, po_total: Number(p.total) || 0, status, status_ar: AR[status]};
+    });
+  }
+});
+
+dash.calc('wbsprog', {
+  inputs: ['wbs', 'e1', 'e2', 'po', 'scope'],
+  title: 'WBS progress',
+  description: 'Latest week: each WBS item takes done/total from the log that measures it (shop drawings, materials, POs by package, installed metres by zone); a parent sums its children. Items with no log are blank.',
+  fn: (wbs, e1, e2, po, scope) => {
+    const s = (rows, k) => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const has = (v) => v !== null && v !== undefined && v !== '';
+    const latest = (rows) => { const w = [...new Set(rows.map((r) => r.week))].sort().pop(); return rows.filter((r) => r.week === w); };
+    const E1 = latest(e1), E2 = latest(e2), PO = latest(po);
+    const wet = PO.filter((r) => r.package === 'Wet'), dry = PO.filter((r) => r.package === 'Dry');
+    const logs = {sd: [s(E1, 'approved'), s(E1, 'total')], ms: [s(E2, 'approved'), s(E2, 'total')], 'po-wet': [s(wet, 'issued'), s(wet, 'total')], 'po-dry': [s(dry, 'issued'), s(dry, 'total')]};
+    const own = (r) => {
+      if (!r.basis) return null;
+      if (logs[r.basis]) return logs[r.basis];
+      if (String(r.basis).startsWith('zone:')) { const z = scope.filter((x) => x.zone === r.basis.slice(5)), rep = z.filter((x) => has(x.installed_m)); return rep.length ? [s(rep, 'installed_m'), s(z, 'planned_m')] : null; }
+      return null;
+    };
+    const roll = (r) => {
+      if (r.rollup === false) return null;
+      const o = own(r); if (o) return o;
+      const ks = wbs.filter((k) => k.parent === r.code).map(roll).filter(Boolean);
+      return ks.length ? [ks.reduce((a, k) => a + k[0], 0), ks.reduce((a, k) => a + k[1], 0)] : null;
+    };
+    return wbs.map((r) => {
+      const v = roll(r);
+      return {code: r.code, name: r.name, name_ar: r.name_ar, level: Number(r.level), parent: r.parent, has_kids: wbs.some((k) => k.parent === r.code), done: v ? v[0] : null, total: v ? v[1] : null, pct: v && v[1] ? v[0] / v[1] : null, basis: r.basis_label || '', basis_ar: r.basis_label_ar || ''};
+    });
+  }
+});
+
+dash.calc('riskcount', {
+  inputs: ['risks'],
+  title: 'Risk counts',
+  description: 'All open risks in the register, and those rated high probability.',
+  fn: (risks) => [{level: 'All', n: risks.length}, {level: 'High', n: risks.filter((r) => r.probability === 'High').length}]
+});
+
+dash.calc('cosum', {
+  inputs: ['closeout'],
+  title: 'Checklist counts',
+  description: 'Number of tests in the T&C checklist, in total and by status.',
+  fn: (closeout) => [{status: 'All', n: closeout.length}, ...[...new Set(closeout.map((r) => r.status))].map((st) => ({status: st, n: closeout.filter((r) => r.status === st).length}))]
+});
+
+/* ================= helpers ================= */
+window.tw = {
+  fmt: {pct: d3.format('.1%'), int: d3.format(','), m: (v) => d3.format(',.0f')(v) + ' m', text: (v) => String(v)},
+  ar() { return dash.params().lang === 'ar'; },
+  t(en, ar) { return tw.ar() ? ar : en; },
+  enc(v) { return encodeURIComponent(String(v)); },
+  where(s) { return s ? Object.fromEntries(s.split('&').filter(Boolean).map((p) => p.split('=').map(decodeURIComponent))) : {}; },
+  latestWeek(rows) { return [...new Set(rows.map((r) => r.week))].sort().pop(); },
+  week(rows) { const p = dash.params().wk; const ws = rows.map((r) => r.week); return p && ws.includes(p) ? p : tw.latestWeek(rows); },
+  filt(rows, keys) {
+    const p = dash.params(); let out = rows;
+    if (keys.includes('wk') && rows.length && 'week' in rows[0]) { const w = tw.week(rows); out = out.filter((r) => r.week === w); }
+    if (keys.includes('pkg') && p.pkg && p.pkg !== 'All') out = out.filter((r) => r.package === p.pkg);
+    if (keys.includes('net') && p.net && p.net !== 'All') out = out.filter((r) => r.network === p.net);
+    if (keys.includes('zone') && p.zone && p.zone !== 'All') out = out.filter((r) => r.zone === p.zone);
+    return out;
+  },
+  fail(el) { el.replaceChildren(); const d = document.createElement('div'); d.className = 'tw-fail'; d.textContent = tw.t('Failed to load', 'تعذّر التحميل'); el.appendChild(d); },
+  pending(el, st) { if (st === 'error') { el.classList.remove('dash-skeleton'); tw.fail(el); } else { el.replaceChildren(); el.classList.add('dash-skeleton'); } },
+  empty(el) { const d = document.createElement('div'); d.className = 'tw-empty'; d.textContent = tw.t('No rows for these filters.', 'لا توجد بيانات لهذه الفلاتر.'); el.appendChild(d); },
+  measure(svg, texts, cls) { const t = svg.append('text').attr('class', cls || 'tw-tick'); let m = 0; texts.forEach((s) => { t.text(s); m = Math.max(m, t.node().getComputedTextLength()); }); t.remove(); return m; },
+  tip(el) {
+    const t = document.createElement('div'); t.className = 'tw-tip'; t.hidden = true; el.appendChild(t);
+    return {
+      show(ev, lines) {
+        t.replaceChildren(...lines.map((l, i) => { const p = document.createElement('div'); p.textContent = l; if (i === 0) p.className = 'tw-tip-h'; return p; }));
+        t.hidden = false;
+        const b = el.getBoundingClientRect();
+        const x = Math.max(0, Math.min(ev.clientX - b.left + 12, b.width - t.offsetWidth - 4));
+        t.style.left = x + 'px'; t.style.top = (ev.clientY - b.top + 12) + 'px';
+      },
+      hide() { t.hidden = true; }
+    };
+  },
+  STATUS: [
+    {k: 'approved', en: 'Approved', ar: 'معتمد', c: 'var(--color-ok)'},
+    {k: 'under_review', en: 'Under review', ar: 'تحت المراجعة', c: 'var(--color-warn)'},
+    {k: 'rejected', en: 'Rejected', ar: 'مرفوض', c: 'var(--color-bad)'},
+    {k: 'to_resubmit', en: 'To resubmit', ar: 'لإعادة التقديم', c: 'var(--cds-chart-reference)'},
+    {k: 'to_submit', en: 'To submit', ar: 'للتقديم', c: 'var(--cds-chart-muted)'}
+  ],
+  PO: [
+    {k: 'issued', en: 'PO issued', ar: 'صادر', c: 'var(--color-ok)'},
+    {k: 'pending', en: 'PO pending', ar: 'معلّق', c: 'var(--cds-chart-muted)'}
+  ],
+  stack(el, id, keys) {
+    const d = dash.data(id);
+    if (d.status !== 'ok') { tw.pending(el, d.status); return; }
+    el.classList.remove('dash-skeleton'); el.replaceChildren();
+    const rows = tw.filt(d.data, ['wk', 'pkg']);
+    if (!rows.length) { tw.empty(el); return; }
+    const name = (r) => (tw.ar() ? r.system_ar : r.system);
+    const W = Math.max(280, el.clientWidth), rowH = 22, gap = 12;
+    const svg = d3.select(el).append('svg').attr('width', '100%');
+    const lw = tw.measure(svg, rows.map(name)) + 10;
+    const totals = rows.map((r) => Math.max(Number(r.total) || 0, keys.reduce((a, k) => a + (Number(r[k.k]) || 0), 0)));
+    const ew = tw.measure(svg, totals.map((v) => tw.fmt.int(v)), 'tw-lbl') + 10;
+    const H = rows.length * (rowH + gap);
+    svg.attr('viewBox', `0 0 ${W} ${H}`);
+    const x = d3.scaleLinear([0, d3.max(totals) || 1], [lw, W - ew]);
+    const tip = tw.tip(el);
+    rows.forEach((r, i) => {
+      const y = i * (rowH + gap) + gap / 2;
+      svg.append('text').attr('class', 'tw-tick').attr('x', lw - 10).attr('y', y + rowH / 2).attr('dy', '0.35em').attr('text-anchor', 'end').text(name(r));
+      let acc = 0;
+      keys.forEach((k) => {
+        const v = Number(r[k.k]) || 0; if (!v) return;
+        svg.append('rect').attr('x', x(acc)).attr('y', y).attr('height', rowH).attr('width', Math.max(1, x(acc + v) - x(acc) - 1)).attr('rx', 2).style('fill', k.c)
+          .on('pointermove', (ev) => tip.show(ev, [name(r), `${tw.t(k.en, k.ar)}: ${tw.fmt.int(v)}`, `${tw.t('Total', 'الإجمالي')}: ${tw.fmt.int(Number(r.total))}`]))
+          .on('pointerleave', () => tip.hide());
+        acc += v;
+      });
+      svg.append('text').attr('class', 'tw-lbl').attr('x', x(acc) + 6).attr('y', y + rowH / 2).attr('dy', '0.35em').text(tw.fmt.int(Number(r.total)));
+    });
+  },
+  select(sel, opts, param) {
+    const cur = dash.params()[param];
+    sel.replaceChildren(...opts.map(([v, label]) => new Option(label, v)));
+    sel.value = cur === null || cur === undefined ? opts[0][0] : String(cur);
+    sel.onchange = () => dash.setParams({[param]: sel.value === 'All' ? 'All' : sel.value});
+  }
+};
+window.twWbsClosed = window.twWbsClosed || new Set();
+window.twChecksAll = false;
+
+/* ================= navigation, language, reset ================= */
+const twOpen = (id) => {
+  document.querySelectorAll('[data-page]').forEach((s) => { s.hidden = s.id !== id; });
+  document.querySelectorAll('.tw-nav button').forEach((b) => { if (b.dataset.tab === id) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+};
+document.querySelectorAll('.tw-nav button').forEach((b) => b.addEventListener('click', () => { twOpen(b.dataset.tab); dash.setLink(b.dataset.tab); }));
+const twNamed = document.getElementById(location.hash.slice(1));
+if (twNamed && twNamed.matches('[data-page]')) twOpen(twNamed.id);
+document.querySelectorAll('.tw-lang-b').forEach((b) => b.addEventListener('click', () => dash.setParams({lang: b.dataset.lang})));
+document.querySelectorAll('.tw-reset').forEach((b) => b.addEventListener('click', () => { const l = dash.params().lang; dash.resetParams(); dash.setParams({lang: l}); }));
+document.querySelectorAll('.tw-wbs tbody').forEach((tb) => tb.addEventListener('click', (ev) => {
+  const tr = ev.target.closest('tr.l1'); if (!tr) return;
+  const c = tr.dataset.key; if (window.twWbsClosed.has(c)) window.twWbsClosed.delete(c); else window.twWbsClosed.add(c);
+  dash.draw('wbsrows');
+}));
+dash.onData(() => {
+  const ar = dash.params().lang === 'ar';
+  document.querySelectorAll('.tw').forEach((r) => r.classList.toggle('ar', ar));
+  document.querySelectorAll('.tw-lang-b').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === (ar ? 'ar' : 'en'))));
+  document.querySelectorAll('[data-swatch]').forEach((s) => s.style.setProperty('--sw', dash.colors[Number(s.dataset.swatch)]));
+});
+
+/* ================= drawings ================= */
+dash.draw('val', (el) => {
+  const d = dash.data(el.dataset.source);
+  if (el.dataset.kpi) {
+    const p = dash.params();
+    const w = d.status === 'ok' ? tw.week(d.data) : '';
+    el.dataset.where = `week=${tw.enc(w)}&package=${tw.enc(p.pkg || 'All')}&metric=${tw.enc(el.dataset.kpi)}`;
+  }
+  if (d.status !== 'ok') { el.textContent = '—'; el.classList.toggle('dash-skeleton', d.status === 'loading'); return; }
+  el.classList.remove('dash-skeleton');
+  const w = tw.where(el.dataset.where);
+  const r = d.data.find((row) => Object.entries(w).every(([k, v]) => String(row[k]) === v));
+  const v = r ? r[el.dataset.field] : null;
+  if (v === null || v === undefined) { el.textContent = el.dataset.kpi ? tw.t('Not reported', 'غير مُبلَّغ') : '—'; return; }
+  el.textContent = (tw.fmt[el.dataset.fmt] || tw.fmt.int)(el.dataset.fmt === 'text' ? v : Number(v));
+});
+
+dash.draw('delta', (el) => {
+  const d = dash.data('weekcmp');
+  if (d.status !== 'ok') { el.textContent = '—'; return; }
+  const r = d.data.find((x) => x.log === tw.where(el.dataset.where).log);
+  const v = r ? r.change_pp : null;
+  if (v === null || v === undefined) { el.textContent = tw.t('No prior report yet', 'لا يوجد تقرير سابق بعد'); return; }
+  el.textContent = `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)} pp ${tw.t('vs prior week', 'عن الأسبوع السابق')}`;
+});
+
+dash.draw('checkcount', (el) => {
+  const d = dash.data('checks');
+  if (d.status !== 'ok') { el.textContent = '—'; return; }
+  const rv = d.data.filter((r) => r.severity === 'review').length, inf = d.data.length - rv;
+  el.textContent = tw.t(`${rv} to review · ${inf} for information`, `${rv} للمراجعة · ${inf} للعلم`);
+});
+
+dash.draw('checklist', (el) => {
+  const d = dash.data('checks');
+  el.replaceChildren();
+  if (d.status !== 'ok') return;
+  const rows = [...d.data].sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'review' ? -1 : 1));
+  const shown = window.twChecksAll ? rows : rows.slice(0, 5);
+  shown.forEach((r) => { const li = document.createElement('li'); li.className = r.severity === 'info' ? 'info' : ''; li.textContent = tw.ar() ? r.issue_ar : r.issue; el.appendChild(li); });
+  if (rows.length > 5) {
+    const b = document.createElement('button'); b.className = 'tw-more';
+    b.textContent = window.twChecksAll ? tw.t('Show fewer', 'عرض أقل') : tw.t(`+${rows.length - 5} more`, `+${rows.length - 5} أخرى`);
+    b.onclick = () => { window.twChecksAll = !window.twChecksAll; dash.draw('checklist'); };
+    const li = document.createElement('li'); li.style.listStyle = 'none'; li.appendChild(b); el.appendChild(li);
+  }
+});
+
+dash.draw('rows', (tbody) => {
+  const table = tbody.closest('table'); if (!table) return;
+  const d = dash.data(table.dataset.source);
+  tbody.replaceChildren();
+  if (d.status !== 'ok') return;
+  const keys = (table.dataset.rowKey || '').split(',');
+  const rows = tw.filt(d.data, (table.dataset.filter || '').split(' '));
+  const fields = [...table.querySelectorAll('th[data-field]')].map((th) => [th.dataset.field, th.classList.contains('num')]);
+  rows.forEach((r) => {
+    const tr = document.createElement('tr');
+    tr.dataset.key = keys.length > 1 ? keys.map((k) => tw.enc(r[k])).join(',') : String(r[keys[0]]);
+    fields.forEach(([f, num]) => {
+      const td = document.createElement('td'); const v = r[f];
+      if (num) td.className = 'num';
+      td.textContent = v === null || v === undefined ? '' : (typeof v === 'number' ? tw.fmt.int(v) : String(v));
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+});
+
+dash.draw('weekrows', (tbody) => {
+  const d = dash.data('weekcmp');
+  tbody.replaceChildren();
+  if (d.status !== 'ok') return;
+  const dt = (s) => (s ? d3.utcFormat('%d %b %Y')(new Date(s)) : '—');
+  d.data.forEach((r) => {
+    const tr = document.createElement('tr'); tr.dataset.key = r.log;
+    const c = (t, num) => { const td = document.createElement('td'); if (num) td.className = 'num'; td.textContent = t; tr.appendChild(td); };
+    c(r.log); c(dt(r.last_week)); c(dt(r.this_week));
+    c(r.last_pct === null || r.last_pct === undefined ? '—' : tw.fmt.pct(r.last_pct), true);
+    c(r.this_pct === null || r.this_pct === undefined ? '—' : tw.fmt.pct(r.this_pct), true);
+    c(r.change_pp === null || r.change_pp === undefined ? '—' : `${r.change_pp >= 0 ? '+' : '−'}${Math.abs(r.change_pp).toFixed(1)} pp`, true);
+    tbody.appendChild(tr);
+  });
+});
+
+dash.draw('wbsrows', (tbody) => {
+  const d = dash.data('wbsprog');
+  tbody.replaceChildren();
+  if (d.status !== 'ok') return;
+  const ar = tbody.closest('.ar-t') !== null;
+  d.data.forEach((r) => {
+    if (r.parent && window.twWbsClosed.has(r.parent)) return;
+    const lvl = Number(r.level) || 1;
+    const tr = document.createElement('tr'); tr.dataset.key = r.code;
+    if (lvl === 1) tr.className = 'l1';
+    const cell = (txt, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = txt; tr.appendChild(td); return td; };
+    const caret = lvl === 1 && r.has_kids ? (window.twWbsClosed.has(r.code) ? (ar ? '◂ ' : '▸ ') : '▾ ') : '';
+    cell(caret + r.code).style.whiteSpace = 'nowrap';
+    cell(ar ? r.name_ar : r.name).style.paddingInlineStart = `calc(var(--cds-pad-sm) + ${(lvl - 1) * 1.2}rem)`;
+    const has = r.pct !== null && r.pct !== undefined;
+    const pc = cell(has ? tw.fmt.pct(Number(r.pct)) : ''); pc.style.minWidth = '8rem';
+    if (has) {
+      const bar = document.createElement('div'); bar.style.cssText = 'height:6px;border-radius:3px;margin-top:3px;background:var(--cds-chart-grid)';
+      const fill = document.createElement('div'); fill.style.cssText = `height:100%;border-radius:3px;width:${Math.max(2, Number(r.pct) * 100)}%;background:${dash.colors[0]}`;
+      bar.appendChild(fill); pc.appendChild(bar);
+    }
+    cell(r.done === null || r.done === undefined ? '' : tw.fmt.int(Number(r.done)), 'num');
+    cell(r.total === null || r.total === undefined ? '' : tw.fmt.int(Number(r.total)), 'num');
+    cell(ar ? r.basis_ar : r.basis).style.color = 'var(--color-fg-muted)';
+    tbody.appendChild(tr);
+  });
+});
+
+dash.draw('signal', (el) => {
+  const m = dash.data('matvspo'), e = dash.data('e1');
+  el.replaceChildren();
+  if (m.status !== 'ok' || e.status !== 'ok') return;
+  const ar = tw.ar(), nm = (r) => (ar ? r.system_ar : r.system);
+  const join = (xs) => (xs.length < 2 ? xs.join('') : xs.slice(0, -1).join('، ') + (ar ? ' و' : ' and ') + xs[xs.length - 1]);
+  const lines = [];
+  const ns = m.data.filter((r) => r.status === 'Not started');
+  if (ns.length) lines.push(ar ? `${join(ns.map(nm))}: لا توجد مواد معتمدة، فلا يمكن إصدار أوامر شراء بعد.` : `${join(ns.map(nm))}: no approved materials, so no POs can be issued yet.`);
+  const E1 = e.data.filter((r) => r.week === tw.latestWeek(e.data));
+  const none = E1.filter((r) => Number(r.approved) === 0);
+  const toSub = none.reduce((a, r) => a + (Number(r.to_submit) || 0), 0);
+  if (none.length) lines.push(ar ? `${toSub} مخططًا تنفيذيًا لم يُعتمد منها شيء بعد في: ${join(none.map(nm))}.` : `${toSub} shop drawings with none approved yet in ${join(none.map(nm))}.`);
+  const ur = E1.reduce((a, r) => a + (Number(r.wk_under_review) || 0), 0);
+  if (ur) lines.push(ar ? `${ur} مخططًا قُدّمت هذا الأسبوع وهي تحت المراجعة.` : `${ur} shop drawings went under review this week.`);
+  const pend = m.data.filter((r) => r.status === 'Approved, PO pending');
+  if (pend.length) lines.push(ar ? `مواد معتمدة تنتظر أوامر شراء: ${join(pend.map(nm))}.` : `Approved materials waiting for POs: ${join(pend.map(nm))}.`);
+  lines.forEach((t) => { const li = document.createElement('li'); li.textContent = t; el.appendChild(li); });
+});
+
+dash.draw('stack-e1', (el) => tw.stack(el, 'e1', tw.STATUS));
+dash.draw('stack-e2', (el) => tw.stack(el, 'e2', tw.STATUS));
+dash.draw('stack-po', (el) => tw.stack(el, 'po', tw.PO));
+
+const twOpts = (rows, key, keyAr, allEn, allAr) => [['All', tw.t(allEn, allAr)], ...[...new Map(rows.map((r) => [r[key], tw.ar() ? r[keyAr] : r[key]])).entries()]];
+dash.draw('f-pkg', (sel) => tw.select(sel, [['All', tw.t('All packages', 'كل التخصصات')], ['Wet', tw.t('Wet utilities', 'الشبكات الرطبة')], ['Dry', tw.t('Dry utilities', 'الشبكات الجافة')]], 'pkg'));
+dash.draw('f-net', (sel) => { const d = dash.data('scope'); tw.select(sel, d.status === 'ok' ? twOpts(d.data, 'network', 'network_ar', 'All networks', 'كل الشبكات') : [['All', tw.t('All networks', 'كل الشبكات')]], 'net'); });
+dash.draw('f-zone', (sel) => { const d = dash.data('scope'); tw.select(sel, d.status === 'ok' ? twOpts(d.data, 'zone', 'zone_ar', 'All zones', 'كل المناطق') : [['All', tw.t('All zones', 'كل المناطق')]], 'zone'); });
+dash.draw('f-wk', (sel) => {
+  const d = dash.data('e1');
+  const ws = d.status === 'ok' ? [...new Set(d.data.map((r) => r.week))].sort().reverse() : [];
+  const fmt = (w) => d3.utcFormat('%d %b %Y')(new Date(w));
+  sel.replaceChildren(...ws.map((w, i) => new Option(fmt(w) + (i === 0 ? tw.t(' (latest)', ' (الأحدث)') : ''), w)));
+  sel.value = dash.params().wk && ws.includes(dash.params().wk) ? dash.params().wk : (ws[0] || '');
+  sel.onchange = () => dash.setParams({wk: sel.value});
+});
+
+dash.draw('matrix', (el) => {
+  const d = dash.data('scope');
+  if (d.status !== 'ok') { tw.pending(el, d.status); return; }
+  el.classList.remove('dash-skeleton'); el.replaceChildren();
+  const ar = tw.ar();
+  const rows = tw.filt(d.data, ['pkg', 'net', 'zone']);
+  if (!rows.length) { tw.empty(el); return; }
+  const zones = [...new Map(rows.map((r) => [r.zone, ar ? r.zone_ar : r.zone])).entries()];
+  const nets = [...new Map(rows.map((r) => [r.network, r])).values()];
+  const t = document.createElement('table'), head = document.createElement('tr');
+  head.appendChild(document.createElement('th'));
+  zones.forEach(([, label]) => { const th = document.createElement('th'); th.textContent = label; head.appendChild(th); });
+  const th0 = document.createElement('thead'); th0.appendChild(head); t.appendChild(th0);
+  const body = document.createElement('tbody');
+  nets.forEach((n) => {
+    const tr = document.createElement('tr'), h = document.createElement('th');
+    h.textContent = ar ? n.network_ar : n.network; tr.appendChild(h);
+    zones.forEach(([z]) => {
+      const r = rows.find((x) => x.zone === z && x.network === n.network) || {};
+      const td = document.createElement('td');
+      if (r.in_scope) {
+        td.style.background = `color-mix(in srgb, ${dash.colors[r.package === 'Wet' ? 0 : 1]} 22%, transparent)`;
+        td.textContent = r.planned_m !== null && r.planned_m !== undefined ? tw.fmt.m(Number(r.planned_m)) : tw.t('In scope', 'ضمن النطاق');
+      } else { td.className = 'out'; td.textContent = '—'; }
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  t.appendChild(body); el.appendChild(t);
+});
+
+dash.draw('nettotals', (el) => {
+  const d = dash.data('nettotals');
+  if (d.status !== 'ok') { tw.pending(el, d.status); return; }
+  el.classList.remove('dash-skeleton'); el.replaceChildren();
+  const rows = tw.filt(d.data, ['pkg', 'net']);
+  if (!rows.length) { tw.empty(el); return; }
+  const nm = (r) => (tw.ar() ? r.network_ar : r.network);
+  const W = Math.max(280, el.clientWidth), rowH = 20, gap = 12;
+  const svg = d3.select(el).append('svg').attr('width', '100%');
+  const lw = tw.measure(svg, rows.map(nm)) + 10;
+  const ew = tw.measure(svg, rows.map((r) => tw.fmt.m(Number(r.length_m))), 'tw-lbl') + 10;
+  const H = rows.length * (rowH + gap);
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+  const x = d3.scaleLinear([0, d3.max(rows, (r) => Number(r.length_m)) || 1], [lw, W - ew]);
+  const tip = tw.tip(el);
+  rows.forEach((r, i) => {
+    const y = i * (rowH + gap) + gap / 2, v = Number(r.length_m);
+    svg.append('text').attr('class', 'tw-tick').attr('x', lw - 10).attr('y', y + rowH / 2).attr('dy', '0.35em').attr('text-anchor', 'end').text(nm(r));
+    svg.append('rect').attr('x', lw).attr('y', y).attr('height', rowH).attr('width', Math.max(2, x(v) - lw)).attr('rx', 2).style('fill', dash.colors[r.package === 'Wet' ? 0 : 1])
+      .on('pointermove', (ev) => tip.show(ev, [nm(r), `${tw.fmt.m(v)} (${tw.ar() ? r.measure_ar : r.measure})`]))
+      .on('pointerleave', () => tip.hide());
+    svg.append('text').attr('class', 'tw-lbl').attr('x', x(v) + 6).attr('y', y + rowH / 2).attr('dy', '0.35em').text(tw.fmt.m(v));
+  });
+});
+
+dash.draw('depths', (el) => {
+  const d = dash.data('depths');
+  if (d.status !== 'ok') { tw.pending(el, d.status); return; }
+  el.classList.remove('dash-skeleton'); el.replaceChildren();
+  const rows = tw.filt(d.data, ['net', 'zone']).sort((a, b) => Number(a.order) - Number(b.order));
+  if (!rows.length) { tw.empty(el); return; }
+  const GROUND = 5.0, nm = (r) => (tw.ar() ? r.network_ar : r.network);
+  const W = Math.max(280, el.clientWidth), H = 230, top = 34, bottom = 30, left = 44;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+  const x = d3.scaleBand(rows.map((r) => r.network), [left, W - 8]).padding(0.35);
+  const y = d3.scaleLinear([0, Math.ceil(d3.max(rows, (r) => Number(r.depth_m)) || 1)], [top, H - bottom]);
+  y.ticks(4).forEach((t) => {
+    svg.append('line').attr('x1', left).attr('x2', W - 8).attr('y1', y(t)).attr('y2', y(t)).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('class', 'tw-tick').attr('x', left - 6).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').text(t + ' m');
+  });
+  svg.append('line').attr('x1', left).attr('x2', W - 8).attr('y1', y(0)).attr('y2', y(0)).style('stroke', 'var(--cds-chart-axis)').style('stroke-width', 2);
+  svg.append('text').attr('class', 'tw-tick').attr('x', left).attr('y', top - 8).text(`${tw.t('Ground level', 'منسوب الأرض')} +${GROUND.toFixed(2)} m`);
+  const tip = tw.tip(el), bw = Math.min(32, x.bandwidth());
+  rows.forEach((r) => {
+    const cx = x(r.network) + x.bandwidth() / 2, dv = Number(r.depth_m);
+    svg.append('rect').attr('x', cx - bw / 2).attr('y', y(0)).attr('width', bw).attr('height', y(dv) - y(0)).attr('rx', 2).style('fill', Number(r.order) === 1 ? dash.colors[0] : 'var(--cds-chart-muted)')
+      .on('pointermove', (ev) => tip.show(ev, [nm(r), `${tw.t('Depth', 'العمق')} ${dv.toFixed(2)} m`, `${tw.t('Invert level', 'منسوب القاع')} +${Number(r.invert_level_m).toFixed(2)} m`]))
+      .on('pointerleave', () => tip.hide());
+    svg.append('text').attr('class', 'tw-lbl').attr('x', cx).attr('y', y(dv) + 14).attr('text-anchor', 'middle').text(dv.toFixed(2) + ' m');
+    svg.append('text').attr('class', 'tw-tick').attr('x', cx).attr('y', H - 8).attr('text-anchor', 'middle').text(`${r.order}. ${nm(r)}`);
+  });
+});
+
+dash.draw('riskmatrix', (el) => {
+  const d = dash.data('risks');
+  if (d.status !== 'ok') { tw.pending(el, d.status); return; }
+  el.classList.remove('dash-skeleton'); el.replaceChildren();
+  const ar = tw.ar(), lab = {High: tw.t('High', 'عالية'), Medium: tw.t('Medium', 'متوسطة'), Low: tw.t('Low', 'منخفضة')};
+  const P = ['High', 'Medium', 'Low'], I = ['Low', 'Medium', 'High'];
+  const grid = document.createElement('div'); grid.className = 'tw-rm';
+  const tip = tw.tip(el);
+  const ax = (txt) => { const a = document.createElement('div'); a.className = 'ax'; a.textContent = txt; return a; };
+  P.forEach((p, pi) => {
+    grid.appendChild(ax(lab[p]));
+    I.forEach((im, ii) => {
+      const c = document.createElement('div'); c.className = 'c';
+      const score = (2 - pi) + ii;
+      c.style.background = score >= 3 ? 'color-mix(in srgb, var(--color-bad) 22%, transparent)' : score === 2 ? 'color-mix(in srgb, var(--color-warn) 22%, transparent)' : 'color-mix(in srgb, var(--color-ok) 14%, transparent)';
+      d.data.filter((r) => r.probability === p && r.impact === im).forEach((r) => {
+        const chip = document.createElement('span'); chip.className = 'tw-pill'; chip.textContent = r.id;
+        chip.addEventListener('pointermove', (ev) => tip.show(ev, [r.id, ar ? r.risk_ar : r.risk]));
+        chip.addEventListener('pointerleave', () => tip.hide());
+        c.appendChild(chip);
+      });
+      grid.appendChild(c);
+    });
+  });
+  grid.appendChild(ax(''));
+  I.forEach((im) => grid.appendChild(ax(lab[im])));
+  const cap = document.createElement('div'); cap.className = 'tw-note'; cap.style.marginTop = 'var(--cds-gap-xs)';
+  cap.textContent = tw.t('Rows: probability · Columns: impact', 'الصفوف: الاحتمالية · الأعمدة: التأثير');
+  el.appendChild(grid); el.appendChild(cap);
+});
+
+</script>
+</body></html>
